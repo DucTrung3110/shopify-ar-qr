@@ -1,4 +1,7 @@
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
+  // Enable CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  
   const { url } = req.query;
   
   if (!url) {
@@ -10,14 +13,19 @@ export default async function handler(req, res) {
     const fileUrl = Array.isArray(url) ? url[0] : url;
     const decodedUrl = decodeURIComponent(fileUrl);
     
-    console.log('Fetching:', decodedUrl);
+    console.log('[AR API] Fetching:', decodedUrl);
     
     // Fetch file from Shopify CDN
-    const response = await fetch(decodedUrl);
+    const response = await fetch(decodedUrl, {
+      method: 'GET',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (iPhone)'
+      }
+    });
     
     if (!response.ok) {
-      console.error('Shopify returned:', response.status);
-      res.status(response.status).json({ error: `Shopify CDN error: ${response.status}` });
+      console.error('[AR API] Shopify error:', response.status);
+      res.status(response.status).json({ error: `CDN error ${response.status}` });
       return;
     }
     
@@ -25,19 +33,20 @@ export default async function handler(req, res) {
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     
-    console.log('File size:', buffer.length, 'bytes');
+    console.log('[AR API] File size:', buffer.length, 'bytes');
     
-    // Set headers - IMPORTANT for iOS AR Quick Look
+    // Set headers for iOS AR Quick Look
     res.setHeader('Content-Type', 'model/vnd.usdz+zip');
-    res.setHeader('Content-Length', buffer.length);
-    res.setHeader('Content-Disposition', 'inline; filename="model.usdz"');
-    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Content-Length', buffer.length.toString());
+    res.setHeader('Content-Disposition', 'inline');
+    res.setHeader('Cache-Control', 'public, max-age=31536000');
     
-    // Send file
-    res.status(200).send(buffer);
+    // Write buffer to response
+    res.status(200).write(buffer);
+    res.end();
+    
   } catch (error) {
-    console.error('Error:', error.message);
+    console.error('[AR API] Error:', error);
     res.status(500).json({ error: error.message });
   }
-}
+};
