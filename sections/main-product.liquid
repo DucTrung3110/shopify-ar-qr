@@ -1766,37 +1766,6 @@
     
     </section>
 
-  {% javascript %}
-    class ProductModal extends ModalDialog {
-      constructor() {
-        super();
-      }
-
-      hide() {
-        super.hide();
-        window.pauseAllMedia();
-      }
-
-      show(opener) {
-        super.show(opener);
-        this.showActiveMedia();
-      }
-
-      showActiveMedia() {
-        const activeMedia = this.querySelector(`[data-media-id="${this.openedBy.getAttribute('data-media-id')}"]`);
-
-        if (
-          activeMedia.nodeName == 'DEFERRED-MEDIA' &&
-          activeMedia.querySelector('template')?.content?.querySelector('.js-youtube')
-        ) {
-          activeMedia.loadContent();
-        }
-      }
-    }
-
-    customElements.define('product-modal', ProductModal);
-  {% endjavascript %}
-
   {%- if first_3d_model -%}
     <script type="application/json" id="ProductJSON-{{ product.id }}">
       {{ product.media | where: 'media_type', 'model' | json }}
