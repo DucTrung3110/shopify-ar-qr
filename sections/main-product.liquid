@@ -1646,9 +1646,9 @@
               usdzUrl = 'https:' + usdzUrl;
             }
             
-            // Use Vercel/external service to rewrite MIME type
-            // Deploy api/ar.js to Vercel and replace domain below
-            arUrl = 'https://your-vercel-domain.vercel.app/api/ar?url=' + encodeURIComponent(usdzUrl);
+            // Use Vercel service to rewrite MIME type (Levvr-style)
+            // Vercel API rewrites USDZ MIME type: application/octet-stream → model/vnd.usdz+zip
+            arUrl = 'https://shopify-ar-qr.vercel.app/api/ar?url=' + encodeURIComponent(usdzUrl);
             
             console.log('✅ USDZ format detected - iOS AR Quick Look (MIME type rewrite)');
             console.log('  Original Shopify URL:', usdzUrl);
