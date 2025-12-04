@@ -33,7 +33,7 @@ export default async function handler(req, res) {
     res.setHeader('Content-Length', data.length);
     
     // Send buffer
-    res.status(200).send(data);
+    res.status(200).end(data);
   } catch (error) {
     console.error('API Error:', error);
     return res.status(500).json({ error: error.message });
