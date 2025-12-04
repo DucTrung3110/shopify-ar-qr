@@ -1,5 +1,4 @@
 const https = require('https');
-const http = require('http');
 
 module.exports = async (req, res) => {
   const { url } = req.query;
@@ -9,41 +8,33 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const fileUrl = Array.isArray(url) ? url[0] : url;
-    const decodedUrl = decodeURIComponent(fileUrl);
+    const decodedUrl = Array.isArray(url) ? decodeURIComponent(url[0]) : decodeURIComponent(url);
     
     console.log('Fetching:', decodedUrl);
     
-    // Download file from URL
-    return new Promise((resolve, reject) => {
-      const protocol = decodedUrl.startsWith('https') ? https : http;
+    // Use https.get to fetch the file
+    https.get(decodedUrl, (response) => {
+      console.log('Response status:', response.statusCode);
       
-      protocol.get(decodedUrl, (response) => {
-        if (response.statusCode !== 200) {
-          res.status(response.statusCode).json({ error: `CDN error ${response.statusCode}` });
-          return resolve();
-        }
-        
-        // Collect chunks
-        const chunks = [];
-        response.on('data', chunk => chunks.push(chunk));
-        response.on('end', () => {
-          const buffer = Buffer.concat(chunks);
-          
-          // Set headers for iOS AR Quick Look
-          res.setHeader('Content-Type', 'model/vnd.usdz+zip');
-          res.setHeader('Content-Length', buffer.length.toString());
-          res.setHeader('Cache-Control', 'public, max-age=31536000');
-          
-          res.status(200).end(buffer);
-          resolve();
-        });
-        response.on('error', reject);
-      }).on('error', reject);
+      if (response.statusCode !== 200) {
+        res.status(response.statusCode).end('Error fetching file');
+        return;
+      }
+      
+      // Set correct headers BEFORE piping
+      res.setHeader('Content-Type', 'model/vnd.usdz+zip');
+      res.setHeader('Cache-Control', 'public, max-age=31536000');
+      
+      // Pipe the response directly
+      response.pipe(res);
+      
+    }).on('error', (err) => {
+      console.error('Request error:', err);
+      res.status(500).end('Error fetching from CDN');
     });
     
   } catch (error) {
     console.error('Error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).end('Server error');
   }
 };
