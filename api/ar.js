@@ -1,47 +1,39 @@
+const https = require('https');
+const { URL } = require('url');
+
 module.exports = (req, res) => {
-  const { url } = req.query;
+  const urlParam = req.query.url;
   
-  if (!url) {
-    return res.status(400).json({ error: 'URL parameter required' });
+  if (!urlParam) {
+    return res.status(400).end('Missing url parameter');
   }
 
-  const https = require('https');
-  const decodedUrl = Array.isArray(url) ? decodeURIComponent(url[0]) : decodeURIComponent(url);
-  
-  console.log('AR API called with URL:', decodedUrl);
+  const fileUrl = Array.isArray(urlParam) ? urlParam[0] : urlParam;
+  const decodedUrl = decodeURIComponent(fileUrl);
   
   try {
-    const options = {
-      timeout: 30000,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      }
-    };
-    
-    https.get(decodedUrl, options, (response) => {
-      console.log('Got response from Shopify:', response.statusCode);
-      
-      if (response.statusCode !== 200) {
-        console.log('Bad status:', response.statusCode);
-        res.status(response.statusCode).json({ error: `CDN returned ${response.statusCode}` });
-        return;
-      }
-      
-      // Set headers FIRST
-      res.setHeader('Content-Type', 'model/vnd.usdz+zip');
-      res.setHeader('Cache-Control', 'public, max-age=31536000');
-      
-      console.log('Piping response to client...');
-      // Pipe directly
-      response.pipe(res);
-      
-    }).on('error', (err) => {
-      console.log('HTTPS error:', err.message);
-      res.status(500).json({ error: 'Failed to fetch file: ' + err.message });
-    });
-    
-  } catch (error) {
-    console.log('Catch block error:', error.message);
-    res.status(500).json({ error: 'Server error: ' + error.message });
+    new URL(decodedUrl); // Validate URL format
+  } catch (e) {
+    return res.status(400).end('Invalid URL');
   }
+  
+  // Set headers first
+  res.setHeader('Content-Type', 'model/vnd.usdz+zip');
+  res.setHeader('Cache-Control', 'public, max-age=31536000');
+  
+  // Simple HTTPS proxy
+  https.get(decodedUrl, (response) => {
+    if (response.statusCode !== 200) {
+      res.writeHead(response.statusCode);
+      res.end('Error: ' + response.statusCode);
+      return;
+    }
+    
+    // Pipe response
+    response.pipe(res);
+    
+  }).on('error', (e) => {
+    res.writeHead(500);
+    res.end('Error');
+  });
 };
