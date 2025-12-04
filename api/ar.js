@@ -1,4 +1,4 @@
-export default function handler(req, res) {
+export default async function handler(req, res) {
   const { url } = req.query;
   
   if (!url) {
@@ -10,20 +10,34 @@ export default function handler(req, res) {
     const fileUrl = Array.isArray(url) ? url[0] : url;
     const decodedUrl = decodeURIComponent(fileUrl);
     
-    // Validate URL is HTTPS
-    if (!decodedUrl.startsWith('https://')) {
-      res.status(400).json({ error: 'Invalid URL' });
+    console.log('Fetching:', decodedUrl);
+    
+    // Fetch file from Shopify CDN
+    const response = await fetch(decodedUrl);
+    
+    if (!response.ok) {
+      console.error('Shopify returned:', response.status);
+      res.status(response.status).json({ error: `Shopify CDN error: ${response.status}` });
       return;
     }
     
-    // Set MIME type headers and redirect
-    res.setHeader('Content-Type', 'model/vnd.usdz+zip');
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    // Get file as buffer
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
     
-    // Redirect to actual file
-    res.status(301).setHeader('Location', decodedUrl).end();
+    console.log('File size:', buffer.length, 'bytes');
+    
+    // Set headers - IMPORTANT for iOS AR Quick Look
+    res.setHeader('Content-Type', 'model/vnd.usdz+zip');
+    res.setHeader('Content-Length', buffer.length);
+    res.setHeader('Content-Disposition', 'inline; filename="model.usdz"');
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    
+    // Send file
+    res.status(200).send(buffer);
   } catch (error) {
+    console.error('Error:', error.message);
     res.status(500).json({ error: error.message });
   }
 }
