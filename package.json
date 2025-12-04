@@ -1,0 +1,19 @@
+{
+  "name": "shopify-ar-qr",
+  "version": "1.0.0",
+  "description": "Shopify AR QR code with Vercel MIME type redirect",
+  "type": "module",
+  "main": "api/ar.js",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "vercel build"
+  },
+  "keywords": [
+    "shopify",
+    "ar",
+    "qr-code",
+    "usdz"
+  ],
+  "author": "DucTrung",
+  "license": "MIT"
+}
